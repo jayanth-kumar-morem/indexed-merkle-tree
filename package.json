@@ -1,0 +1,61 @@
+{
+  "name": "@jayanth-kumar-morem/indexed-merkle-tree",
+  "version": "1.0.1",
+  "description": "A TypeScript implementation of Indexed Merkle Trees with Poseidon hash function support to perform non membership proofs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "examples/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "prepublishOnly": "npm run build && npm test",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "indexed-merkle-tree",
+    "merkle-tree",
+    "cryptography",
+    "poseidon",
+    "typescript",
+    "zero-knowledge",
+    "zk-proofs",
+    "blockchain"
+  ],
+  "author": "Jayanth Kumar <jayanthkumar1903@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jayanth-kumar-morem/indexed-merkle-tree.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jayanth-kumar-morem/indexed-merkle-tree/issues"
+  },
+  "homepage": "https://github.com/jayanth-kumar-morem/indexed-merkle-tree#readme",
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "circomlibjs": "^0.1.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "circomlibjs": "^0.1.7"
+  }
+}
