@@ -1,19 +1,13 @@
 import { IndexedMerkleTree, Leaf, NonMembershipProof, SerializedIMT } from '../src/index';
-import { buildPoseidon } from 'circomlibjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
 describe('IndexedMerkleTree', () => {
     let tree: IndexedMerkleTree;
-    let poseidon: any;
     const testDir = path.join(__dirname, 'temp');
 
-    beforeAll(async () => {
-        poseidon = await buildPoseidon();
-    });
-
     beforeEach(async () => {
-        tree = new IndexedMerkleTree(poseidon);
+        tree = new IndexedMerkleTree();
     });
 
     afterEach(() => {
@@ -199,7 +193,7 @@ describe('IndexedMerkleTree', () => {
 
         test('should deserialize tree state', () => {
             const serialized = tree.serialize();
-            const deserializedTree = IndexedMerkleTree.deserialize(serialized, poseidon);
+            const deserializedTree = IndexedMerkleTree.deserialize(serialized);
             
             expect(deserializedTree.size).toBe(tree.size);
             expect(deserializedTree.root).toBe(tree.root);
@@ -221,7 +215,7 @@ describe('IndexedMerkleTree', () => {
             const originalProof = tree.createNonMembershipProof(queryValue);
             
             const serialized = tree.serialize();
-            const deserializedTree = IndexedMerkleTree.deserialize(serialized, poseidon);
+            const deserializedTree = IndexedMerkleTree.deserialize(serialized);
             
             const deserializedProof = deserializedTree.createNonMembershipProof(queryValue);
             
@@ -247,7 +241,7 @@ describe('IndexedMerkleTree', () => {
             const filePath = path.join(testDir, 'tree.json');
             
             await tree.saveToFile(filePath);
-            const loadedTree = await IndexedMerkleTree.loadFromFile(filePath, poseidon);
+            const loadedTree = IndexedMerkleTree.loadFromFile(filePath);
             
             expect(loadedTree.size).toBe(tree.size);
             expect(loadedTree.root).toBe(tree.root);
@@ -264,7 +258,7 @@ describe('IndexedMerkleTree', () => {
         test('should handle non-existent file gracefully', async () => {
             const filePath = path.join(testDir, 'nonexistent.json');
             
-            await expect(IndexedMerkleTree.loadFromFile(filePath)).rejects.toThrow('File not found');
+            expect(() => IndexedMerkleTree.loadFromFile(filePath)).toThrow('File not found');
         });
 
         test('should create directory if it does not exist', async () => {
@@ -343,7 +337,7 @@ describe('IndexedMerkleTree', () => {
             
             // Deserialize from string
             const parsed = JSON.parse(jsonString);
-            const restoredTree = IndexedMerkleTree.deserialize(parsed, poseidon);
+            const restoredTree = IndexedMerkleTree.deserialize(parsed);
             
             // Verify proof still works
             expect(restoredTree.verifyNonMembershipProof(originalProof)).toBe(true);

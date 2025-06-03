@@ -1,6 +1,6 @@
-import {buildPoseidon} from "circomlibjs";
 import * as fs from 'fs';
 import * as path from 'path';
+import {poseidon2} from "poseidon-lite";
 
 export interface Leaf {
     val: bigint;
@@ -28,40 +28,36 @@ export interface SerializedIMT {
 
 export class IndexedMerkleTree {
     readonly depth = 32;
+    readonly zeros: bigint[];
     readonly zero: bigint;
-    readonly poseidon: any;
 
     private nodes: bigint[][] = [];
     private leaves: Leaf[] = [];
 
-    constructor(poseidon: any) {
-        this.poseidon = poseidon;
-        let zeros = [0n];
-        for(let i=1;i<=this.depth; i++) {
-            const hash = poseidon([zeros[i-1], zeros[i-1]]);
-            zeros[i] = this.toField(hash);
+    constructor() {
+        this.zeros = [0n];
+        for (let i = 1; i <= this.depth; i++) {
+            this.zeros[i] = poseidon2([this.zeros[i - 1], this.zeros[i - 1]])
         }
-        this.zero = zeros[this.depth];
+        this.zero = this.zeros[this.depth];
 
         for(let i=0; i<=this.depth; i++) this.nodes[i] = [];
-        
-        // Initialize with an empty leaf at index 0 to handle non-membership proofs
+
         this.leaves.push({val: 0n, nextVal: 0n, nextIdx: 0});
         this.updateLeafHash(0);
     }
 
     async new(): Promise<IndexedMerkleTree> {
-        const poseidon = await buildPoseidon();
-        return new IndexedMerkleTree(poseidon);
+        return new IndexedMerkleTree();
     }
 
     private leafHash(v: bigint, nextVal: bigint): bigint {
-        const hash = this.poseidon([v, nextVal]);
+        const hash = poseidon2([v, nextVal]);
         return this.toField(hash);
     }
 
     private parentHash(l: bigint, r: bigint): bigint {
-        const hash = this.poseidon([l, r]);
+        const hash = poseidon2([l, r]);
         return this.toField(hash);
     }
 
@@ -69,14 +65,12 @@ export class IndexedMerkleTree {
         if (typeof hash === 'bigint') {
             return hash;
         } else if (hash instanceof Uint8Array) {
-            // Convert Uint8Array to bigint
             let result = 0n;
             for (let i = 0; i < hash.length; i++) {
                 result = result * 256n + BigInt(hash[i]);
             }
             return result;
         } else if (Array.isArray(hash)) {
-            // Handle array output
             let result = 0n;
             for (let i = 0; i < hash.length; i++) {
                 result = result * 256n + BigInt(hash[i]);
@@ -103,12 +97,11 @@ export class IndexedMerkleTree {
 
     private setNode(level: number, index: number, h: bigint) {
         const arr = this.nodes[level];
-        while (arr.length <= index) arr.push(this.zero);
+        while (arr.length <= index) arr.push(this.zeros[level]);
         arr[index] = h;
     }
 
     async insert(x: bigint): Promise<void> {
-        // Check if value already exists
         if (this.leaves.some(leaf => leaf.val === x)) {
             throw new Error(`Value ${x} already exists in the tree`);
         }
@@ -121,17 +114,13 @@ export class IndexedMerkleTree {
             const sucIdx = predecessor.nextIdx;
             const sucVal = predecessor.nextVal;
             
-            // Create new leaf
             this.leaves.push({val: x, nextIdx: sucIdx, nextVal: sucVal});
             
-            // Update predecessor to point to new leaf
             this.leaves[preIdx].nextIdx = newIdx;
             this.leaves[preIdx].nextVal = x;
             
-            // Update hashes
             this.updateLeafHash(preIdx);
         } else {
-            // This should never happen with proper initialization
             throw new Error("No predecessor found - tree not properly initialized");
         }
         
@@ -148,15 +137,12 @@ export class IndexedMerkleTree {
             const isRight = currentIdx & 1;
             const siblingIdx = isRight ? currentIdx - 1 : currentIdx + 1;
             
-            // Get sibling hash (default to zero if doesn't exist)
-            const siblingHash = this.nodes[lvl][siblingIdx] ?? this.zero;
+            const siblingHash = this.nodes[lvl][siblingIdx] ?? this.zeros[lvl];
             
-            // Compute parent hash
             const leftHash = isRight ? siblingHash : h;
             const rightHash = isRight ? h : siblingHash;
             h = this.parentHash(leftHash, rightHash);
             
-            // Move to parent index
             currentIdx = Math.floor(currentIdx / 2);
             this.setNode(lvl + 1, currentIdx, h);
         }
@@ -183,7 +169,7 @@ export class IndexedMerkleTree {
         for(let lvl = 0; lvl < this.depth; lvl++) {
             const isRight = currentIdx & 1;
             const siblingIdx = isRight ? currentIdx - 1 : currentIdx + 1;
-            const siblingHash = this.nodes[lvl][siblingIdx] ?? this.zero;
+            const siblingHash = this.nodes[lvl][siblingIdx] ?? this.zeros[lvl];
             
             path.push(siblingHash);
             directions.push(isRight ? 1 : 0);
@@ -213,9 +199,6 @@ export class IndexedMerkleTree {
         return true;
     }
 
-    /**
-     * Serializes the tree state to a JSON-compatible object
-     */
     serialize(): SerializedIMT {
         return {
             depth: this.depth,
@@ -228,20 +211,14 @@ export class IndexedMerkleTree {
         };
     }
 
-    /**
-     * Deserializes a tree state from a JSON-compatible object
-     */
-    static deserialize(data: SerializedIMT, poseidon: any): IndexedMerkleTree {
-        const tree = new IndexedMerkleTree(poseidon);
+    static deserialize(data: SerializedIMT): IndexedMerkleTree {
+        const tree = new IndexedMerkleTree();
         
-        // Clear the default initialization
         tree.nodes = [];
         tree.leaves = [];
         
-        // Restore nodes
         tree.nodes = data.nodes.map(level => level.map(node => BigInt(node)));
         
-        // Restore leaves
         tree.leaves = data.leaves.map(leaf => ({
             val: BigInt(leaf.val),
             nextVal: BigInt(leaf.nextVal),
@@ -251,14 +228,10 @@ export class IndexedMerkleTree {
         return tree;
     }
 
-    /**
-     * Saves the tree state to a file
-     */
     async saveToFile(filePath: string): Promise<void> {
         const serialized = this.serialize();
         const jsonString = JSON.stringify(serialized, null, 2);
         
-        // Ensure directory exists
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -267,10 +240,7 @@ export class IndexedMerkleTree {
         fs.writeFileSync(filePath, jsonString, 'utf8');
     }
 
-    /**
-     * Loads a tree state from a file
-     */
-    static async loadFromFile(filePath: string, poseidon?: any): Promise<IndexedMerkleTree> {
+    static loadFromFile(filePath: string): IndexedMerkleTree {
         if (!fs.existsSync(filePath)) {
             throw new Error(`File not found: ${filePath}`);
         }
@@ -278,31 +248,17 @@ export class IndexedMerkleTree {
         const jsonString = fs.readFileSync(filePath, 'utf8');
         const data: SerializedIMT = JSON.parse(jsonString);
         
-        // If poseidon is not provided, build it
-        if (!poseidon) {
-            poseidon = await buildPoseidon();
-        }
-        
-        return IndexedMerkleTree.deserialize(data, poseidon);
+        return IndexedMerkleTree.deserialize(data);
     }
 
-    /**
-     * Returns the current number of leaves in the tree
-     */
     get size(): number {
         return this.leaves.length;
     }
 
-    /**
-     * Returns a copy of all leaves
-     */
     getLeaves(): Leaf[] {
         return this.leaves.map(leaf => ({ ...leaf }));
     }
 
-    /**
-     * Returns a copy of all nodes at a specific level
-     */
     getNodesAtLevel(level: number): bigint[] {
         if (level < 0 || level >= this.nodes.length) {
             throw new Error(`Invalid level: ${level}`);

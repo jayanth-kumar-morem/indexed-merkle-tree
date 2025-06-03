@@ -1,6 +1,6 @@
 {
   "name": "@jayanth-kumar-morem/indexed-merkle-tree",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A TypeScript implementation of Indexed Merkle Trees with Poseidon hash function support to perform non membership proofs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -56,6 +56,7 @@
     "node": ">=14.0.0"
   },
   "dependencies": {
-    "circomlibjs": "^0.1.7"
+    "circomlibjs": "^0.1.7",
+    "poseidon-lite": "^0.3.0"
   }
 }

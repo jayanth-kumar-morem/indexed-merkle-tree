@@ -11,7 +11,6 @@
 
 // For local testing, use the built files
 const { IndexedMerkleTree } = require('../dist/index.js');
-const { buildPoseidon } = require('circomlibjs');
 
 // For npm package usage, uncomment the line below:
 // const { IndexedMerkleTree } = require('@jayanth-kumar-morem/indexed-merkle-tree');
@@ -20,20 +19,15 @@ async function basicUsageExample() {
     console.log('🌳 Indexed Merkle Tree - Basic Usage Example\n');
     
     try {
-        // Step 1: Initialize Poseidon hash function
-        console.log('1. Initializing Poseidon hash function...');
-        const poseidon = await buildPoseidon();
-        console.log('   ✅ Poseidon initialized\n');
-        
-        // Step 2: Create a new Indexed Merkle Tree
-        console.log('2. Creating new Indexed Merkle Tree...');
-        const tree = new IndexedMerkleTree(poseidon);
+        // Step 1: Create a new Indexed Merkle Tree (no Poseidon initialization needed)
+        console.log('1. Creating new Indexed Merkle Tree...');
+        const tree = new IndexedMerkleTree();
         console.log(`   ✅ Tree created with initial size: ${tree.size}`);
         console.log(`   📏 Tree depth: ${tree.depth}`);
         console.log(`   🔑 Initial root: ${tree.root.toString()}\n`);
         
-        // Step 3: Insert some values
-        console.log('3. Inserting values...');
+        // Step 2: Insert some values
+        console.log('2. Inserting values...');
         const valuesToInsert = [100n, 500n, 250n, 750n, 125n];
         
         for (const value of valuesToInsert) {
@@ -42,8 +36,8 @@ async function basicUsageExample() {
         }
         console.log(`   🔑 Root after insertions: ${tree.root.toString()}\n`);
         
-        // Step 4: Display tree structure
-        console.log('4. Tree structure:');
+        // Step 3: Display tree structure
+        console.log('3. Tree structure:');
         const leaves = tree.getLeaves();
         console.log('   Leaves (in insertion order):');
         leaves.forEach((leaf, idx) => {
@@ -65,8 +59,8 @@ async function basicUsageExample() {
         }
         console.log(`   Sorted values: [${sortedValues.join(', ')}]\n`);
         
-        // Step 5: Create and verify non-membership proofs
-        console.log('5. Creating non-membership proofs...');
+        // Step 4: Create and verify non-membership proofs
+        console.log('4. Creating non-membership proofs...');
         const queriesToTest = [75n, 200n, 300n, 600n, 1000n];
         
         for (const query of queriesToTest) {
@@ -88,8 +82,8 @@ async function basicUsageExample() {
             }
         }
         
-        // Step 6: Test duplicate insertion (should fail)
-        console.log('6. Testing duplicate insertion...');
+        // Step 5: Test duplicate insertion (should fail)
+        console.log('5. Testing duplicate insertion...');
         try {
             await tree.insert(250n); // This value already exists
             console.log('   ❌ Duplicate insertion should have failed!');
@@ -97,17 +91,17 @@ async function basicUsageExample() {
             console.log(`   ✅ Correctly rejected duplicate: ${error.message}\n`);
         }
         
-        // Step 7: Serialization
-        console.log('7. Serialization example...');
+        // Step 6: Serialization
+        console.log('6. Serialization example...');
         const serialized = tree.serialize();
         console.log(`   📦 Serialized tree depth: ${serialized.depth}`);
         console.log(`   📦 Number of leaf entries: ${serialized.leaves.length}`);
         console.log(`   📦 Number of node levels: ${serialized.nodes.length}`);
         console.log('   ✅ Tree serialized successfully\n');
         
-        // Step 8: Deserialization
-        console.log('8. Deserialization example...');
-        const deserializedTree = IndexedMerkleTree.deserialize(serialized, poseidon);
+        // Step 7: Deserialization
+        console.log('7. Deserialization example...');
+        const deserializedTree = IndexedMerkleTree.deserialize(serialized);
         console.log(`   📂 Deserialized tree size: ${deserializedTree.size}`);
         console.log(`   📂 Roots match: ${tree.root === deserializedTree.root ? '✅' : '❌'}`);
         
@@ -120,20 +114,20 @@ async function basicUsageExample() {
         console.log(`   🔍 Deserialized proof for ${testQuery} valid: ${deserializedTree.verifyNonMembershipProof(deserializedProof) ? '✅' : '❌'}`);
         console.log(`   🔍 Cross-verification works: ${tree.verifyNonMembershipProof(deserializedProof) ? '✅' : '❌'}\n`);
         
-        // Step 9: File operations
-        console.log('9. File operations example...');
+        // Step 8: File operations
+        console.log('8. File operations example...');
         const filePath = './examples/tree-state.json';
         
         await tree.saveToFile(filePath);
         console.log(`   💾 Tree saved to ${filePath}`);
         
-        const loadedTree = await IndexedMerkleTree.loadFromFile(filePath);
+        const loadedTree = IndexedMerkleTree.loadFromFile(filePath);
         console.log(`   📁 Tree loaded from ${filePath}`);
         console.log(`   📁 Loaded tree size: ${loadedTree.size}`);
         console.log(`   📁 Roots match: ${tree.root === loadedTree.root ? '✅' : '❌'}\n`);
         
-        // Step 10: Performance test
-        console.log('10. Performance test...');
+        // Step 9: Performance test
+        console.log('9. Performance test...');
         const startTime = Date.now();
         const numInsertions = 50;
         
@@ -149,8 +143,8 @@ async function basicUsageExample() {
         console.log(`   ⚡ Average time per insertion: ${(insertTime / numInsertions).toFixed(2)}ms`);
         console.log(`   📊 Final tree size: ${tree.size}\n`);
         
-        // Step 11: Large value test
-        console.log('11. Large value test...');
+        // Step 10: Large value test
+        console.log('10. Large value test...');
         const largeValue = BigInt('0x' + 'f'.repeat(32)); // 128-bit value
         await tree.insert(largeValue);
         
@@ -172,8 +166,7 @@ async function basicUsageExample() {
 async function advancedUsageExample() {
     console.log('\n🚀 Advanced Usage Example\n');
     
-    const poseidon = await buildPoseidon();
-    const tree = new IndexedMerkleTree(poseidon);
+    const tree = new IndexedMerkleTree();
     
     // Batch insertion
     console.log('1. Batch insertion with random order...');
@@ -212,8 +205,7 @@ async function advancedUsageExample() {
 async function errorHandlingExample() {
     console.log('\n🛡️ Error Handling Example\n');
     
-    const poseidon = await buildPoseidon();
-    const tree = new IndexedMerkleTree(poseidon);
+    const tree = new IndexedMerkleTree();
     
     // Test various error conditions
     console.log('1. Testing error conditions...');
@@ -231,7 +223,7 @@ async function errorHandlingExample() {
     }
     
     try {
-        await IndexedMerkleTree.loadFromFile('./nonexistent-file.json');
+        IndexedMerkleTree.loadFromFile('./nonexistent-file.json');
     } catch (error) {
         console.log(`   ✅ File not found error: ${error.message}`);
     }
